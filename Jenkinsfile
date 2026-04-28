@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    
+    options {
+        skipDefaultCheckout(true)
+    }
 
     environment {
         IMAGE_NAME = 'flask-app'
@@ -9,21 +13,29 @@ pipeline {
 
     stages{
 
-        stage('TRIVY SCAN') {
-           steps {
-                sh "echo 'Trivy Filesystem Scan:'"
-                sh "trivy fs --format json -o trivy-report.json ."
-            } 
-        }
-
         stage('SETUP') {
             steps{
+                checkout scm: [
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/BmudGit/lab4',
+                        credentialsId: 'GITHUB_PAT'
+                    ]]
+                ]
                 sh """
                 docker network rm $NETWORK_NAME || true
                 docker rm -f $CONTAINER_NAME || true
                 docker rm -f nginx-container || true
                 """
             }
+        }
+
+        stage('TRIVY SCAN') {
+           steps {
+                sh "echo 'Trivy Filesystem Scan:'"
+                sh "trivy fs --format json -o trivy-report.json ."
+            } 
         }
 
         stage('BUILD') {
