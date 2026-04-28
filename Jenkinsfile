@@ -45,7 +45,7 @@ pipeline {
                     curl -f http://localhost:5500 || (echo 'Smoke test failed' && exit 1)
 
                     echo 'Unit tests:'
-                    pip install requests -q --break-system-packages
+                    pip3 install requests -q --break-system-packages
                     python3 -m unittest -v test_app.py
                     """
                 }
