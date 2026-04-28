@@ -42,13 +42,10 @@ pipeline {
                     docker run -d --rm --name $CONTAINER_NAME -p 5500:5500 $IMAGE_NAME:latest
                     sleep 5
                     curl -f http://localhost:5500 || (echo 'Smoke test failed' && exit 1)
-                    docker stop $CONTAINER_NAME || true
-
-                    python3 -m venv .venv
-                    . .venv/bin/activate
-                    pip install -r requirements.txt
+                    python3 -m pip install requests -q --break-system-packages
                     python3 -m unittest -v test_app.py
-                    deactivate
+                    docker stop $CONTAINER_NAME || true
+                    """
                 }
             }
         }
@@ -87,7 +84,7 @@ pipeline {
         }
 
         always {
-            archiveArtifacts artifacts: 'trivy_report.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
         }
     }
 }
