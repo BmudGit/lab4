@@ -13,7 +13,7 @@ pipeline {
         stage('TRIVY SCAN'){
            steps {
                 sh "echo 'Trivy Filesystem Scan:'"
-                sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table . | tee $TRIVY_REPORT"
+                sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table --output $TRIVY_REPORT ."
             } 
         }
 
@@ -54,15 +54,12 @@ pipeline {
                 docker rm -f $CONTAINER_NAME || true
                 docker rm -f nginx-container || true
 
-                echo ''
                 echo 'Creating docker network'
                 docker network create $NETWORK_NAME || true
 
-                echo ''
                 echo 'Running flask container'
                 docker run -d --name $CONTAINER_NAME --network $NETWORK_NAME $IMAGE_NAME:latest
 
-                echo ''
                 echo 'Running Nginx container'
                 docker run -d --name nginx-container --network $NETWORK_NAME -p 80:80 -v \$(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro nginx:latest
                 """
