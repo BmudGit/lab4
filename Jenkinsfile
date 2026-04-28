@@ -31,7 +31,7 @@ pipeline {
            steps {
                 sh "echo 'Trivy Filesystem Scan:'"
                 sh "trivy fs --format json -o trivy-report.json ."
-            } 
+            }
         }
 
         stage('BUILD') {
@@ -66,6 +66,20 @@ pipeline {
             }
         }
 
+        stage('PUSH IMAGE') {
+            steps {
+                sh """
+                    echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
+
+                    docker tag ${IMAGE_NAME} ${DOCKERHUB_REPO}:${IMAGE_TAG}
+                    docker tag ${IMAGE_NAME} ${DOCKERHUB_REPO}:latest
+
+                    docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}
+                    docker push ${DOCKERHUB_REPO}:latest
+                """
+            }
+        }
+
         stage('DEPLOYMENT') {
             steps{
                 sh """
@@ -81,20 +95,6 @@ pipeline {
             }
         }
     }
-
-        stage('Push Image') {
-            steps {
-                sh '''
-                    echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
-
-                    docker tag app ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                    docker tag app ${DOCKERHUB_REPO}:latest
-
-                    docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                    docker push ${DOCKERHUB_REPO}:latest
-                '''
-            }
-        }
 
     post {
         failure {
