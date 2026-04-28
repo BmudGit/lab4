@@ -7,8 +7,11 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'flask-app'
+        IMAGE_TAG = "${BUILD_NUMBER}"
         CONTAINER_NAME = 'flask-app'
         NETWORK_NAME = 'app-network'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKERHUB_REPO = 'bmud/jenkins'
     }
 
     stages{
@@ -78,6 +81,20 @@ pipeline {
             }
         }
     }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                    echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
+
+                    docker tag app ${DOCKERHUB_REPO}:${IMAGE_TAG}
+                    docker tag app ${DOCKERHUB_REPO}:latest
+
+                    docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}
+                    docker push ${DOCKERHUB_REPO}:latest
+                '''
+            }
+        }
 
     post {
         failure {
