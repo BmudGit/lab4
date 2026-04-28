@@ -12,10 +12,8 @@ pipeline {
 
         stage("TRIVY SCAN"){
            steps {
-                sh """
-                echo "Trivy Filesystem Scan:"
-                trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table . 2>&1 | tee $TRIVY_REPORT
-                """
+                sh "echo "Trivy Filesystem Scan:""
+                sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table . | tee $TRIVY_REPORT"
             } 
         }
 
@@ -74,8 +72,11 @@ pipeline {
 
     post {
         failure {
-            sh "docker rm -f $CONTAINER_NAME nginx-container || true"
-            sh "docker network rm $NETWORK_NAME || true"
+            sh """
+            docker network rm $NETWORK_NAME || true
+            docker rm -f $CONTAINER_NAME || true
+            docker rm -f nginx-container || true
+            """
         }
 
         always {
