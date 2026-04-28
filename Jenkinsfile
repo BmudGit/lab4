@@ -13,7 +13,7 @@ pipeline {
         stage('TRIVY SCAN'){
            steps {
                 sh "echo 'Trivy Filesystem Scan:'"
-                sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table --output $TRIVY_REPORT ."
+                sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table --report $TRIVY_REPORT ."
             } 
         }
 
