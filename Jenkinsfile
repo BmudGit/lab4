@@ -15,14 +15,7 @@ pipeline {
 
         stage('SETUP') {
             steps{
-                checkout scm: [
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/BmudGit/lab4',
-                        credentialsId: 'GITHUB_PAT'
-                    ]]
-                ]
+                checkout scm
                 sh """
                 docker network rm $NETWORK_NAME || true
                 docker rm -f $CONTAINER_NAME || true
