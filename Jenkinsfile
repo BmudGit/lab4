@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'flask-app'
+        IMAGE_NAME = "flask-app"
         CONTAINER_NAME = "flask-app-container"
         NETWORK_NAME = "app-network"
         TRIVY_REPORT = "trivy-report.txt"
@@ -10,19 +10,17 @@ pipeline {
 
     stages{
 
-        stage("CLEANUP") {
-            steps{
-                cleanWs()
-
+        stage("TRIVY SCAN"){
+           steps {
                 sh """
-                docker network rm $NETWORK_NAME || true
-                docker rm -f $CONTAINER_NAME || true
-                docker rm -f nginx-container || true
+                echo "Trivy Filesystem Scan:"
+                trivy fs --severity HIGH,CRITICAL --exit-code 1 --format table . > $TRIVY_REPORT
+                cat $TRIVY_REPORT 2>/dev/null || echo "No report generated"
                 """
-            }
+            } 
         }
 
-        stage("BULID") {
+        stage("BUILD") {
             steps {
                 sh """
                 docker buildx build -t $IMAGE_NAME:latest .
@@ -32,24 +30,21 @@ pipeline {
 
         stage("TEST") {
             steps{
-                sh """
-                echo "Smoke test:
-                docker run -d --rm --name $CONTAINER_NAME -p 5500:5500 $IMAGE_NAME:latest
-                sleep 5
-                curl -f http://localhost:5500 || (echo "Smoke test failed" && exit 1)
-                docker stop $CONTAINER_NAME || true
+                timeout(time: 2, unit: "MINUTES"){
+                    sh """
+                    echo "Smoke test:"
+                    docker run -d --rm --name $CONTAINER_NAME -p 5500:5500 $IMAGE_NAME:latest
+                    sleep 5
+                    curl -f http://localhost:5500 || (echo "Smoke test failed" && exit 1)
+                    docker stop $CONTAINER_NAME || true
+                    """
+                }
+            }
+        }
 
-                echo ""
-                echo "Trivy Scan:"
-                docker run -rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format table $IMAGE_NAME:latest > $TRIVY_REPORT
-                cat $TRIVY_REPORT
-                """
-
-                echo ""
-                echo "Archiving scan results"
-                archiveArtifacts artifacts: 'trivy-report.txt', fingerprint: true
-
-                script{
+        stage("APPROVAL") {
+            steps {
+                timeout(time: 10, unit: "MINUTES") {
                     input message: "Approve deployment?"
                 }
             }
@@ -58,7 +53,11 @@ pipeline {
         stage("DEPLOYMENT") {
             steps{
                 sh """
-                echo""
+                docker network rm $NETWORK_NAME || true
+                docker rm -f $CONTAINER_NAME || true
+                docker rm -f nginx-container || true
+
+                echo ""
                 echo "Creating docker network"
                 docker network create $NETWORK_NAME || true
 
@@ -71,6 +70,19 @@ pipeline {
                 docker run -d --name nginx-container --network $NETWORK_NAME -p 80:80 -v \$(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro nginx:latest
                 """
             }
+        }
+    }
+
+    post {
+        failure {
+            sh """
+            docker rm -f $CONTAINER_NAME nginx-container || true
+            docker network rm $NETWORK_NAME || true
+            """
+        }
+
+        always {
+            archiveArtifacts artifacts: "trivy-report.txt", allowEmptyArchive: true, fingerprint: true
         }
     }
 }
