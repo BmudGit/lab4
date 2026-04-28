@@ -77,9 +77,9 @@ pipeline {
     post {
         failure {
             sh """
-            docker network rm $NETWORK_NAME || true
             docker rm -f $CONTAINER_NAME || true
             docker rm -f nginx-container || true
+            docker network rm $NETWORK_NAME || true
             """
         }
 
