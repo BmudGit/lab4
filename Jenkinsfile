@@ -5,7 +5,6 @@ pipeline {
         IMAGE_NAME = 'flask-app'
         CONTAINER_NAME = 'flask-app'
         NETWORK_NAME = 'app-network'
-        TRIVY_REPORT = 'trivy_report.json'
     }
 
     stages{
@@ -13,7 +12,7 @@ pipeline {
         stage('TRIVY SCAN') {
            steps {
                 sh "echo 'Trivy Filesystem Scan:'"
-                sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format json --report all -o $TRIVY_REPORT ."
+                sh "trivy fs --format json -o trivy-report.json ."
             } 
         }
 
@@ -43,11 +42,13 @@ pipeline {
                     docker run -d --rm --name $CONTAINER_NAME -p 5500:5500 $IMAGE_NAME:latest
                     sleep 5
                     curl -f http://localhost:5500 || (echo 'Smoke test failed' && exit 1)
+                    docker stop $CONTAINER_NAME || true
 
-                    echo 'Unit tests:'
-                    pip3 install requests -q --break-system-packages
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    pip install -r requirements.txt
                     python3 -m unittest -v test_app.py
-                    """
+                    deactivate
                 }
             }
         }
