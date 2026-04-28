@@ -69,14 +69,14 @@ pipeline {
         stage('PUSH IMAGE') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-                    sh '''
+                    sh """
                     echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
                     docker tag flask-app:latest $DOCKERHUB_REPO:$IMAGE_TAG
                     docker tag flask-app:latest $DOCKERHUB_REPO:latest
                     docker push $DOCKERHUB_REPO:$IMAGE_TAG
                     docker push $DOCKERHUB_REPO:latest
                     docker logout
-                    '''
+                    """
                 }
             }
         }
