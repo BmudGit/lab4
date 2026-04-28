@@ -10,11 +10,21 @@ pipeline {
 
     stages{
 
-        stage('TRIVY SCAN'){
+        stage('TRIVY SCAN') {
            steps {
                 sh "echo 'Trivy Filesystem Scan:'"
                 sh "trivy fs --severity HIGH,CRITICAL --exit-code 1 --format json --report all -o $TRIVY_REPORT ."
             } 
+        }
+
+        stage('SETUP') {
+            steps{
+                sh """
+                docker network rm $NETWORK_NAME || true
+                docker rm -f $CONTAINER_NAME || true
+                docker rm -f nginx-container || true
+                """
+            }
         }
 
         stage('BUILD') {
@@ -27,7 +37,7 @@ pipeline {
 
         stage('TEST') {
             steps{
-                timeout(time: 2, unit: 'MINUTES'){
+                timeout(time: 2, unit: 'MINUTES') {
                     sh """
                     echo 'Smoke test:'
                     docker run -d --rm --name $CONTAINER_NAME -p 5500:5500 $IMAGE_NAME:latest
@@ -53,10 +63,6 @@ pipeline {
         stage('DEPLOYMENT') {
             steps{
                 sh """
-                docker network rm $NETWORK_NAME || true
-                docker rm -f $CONTAINER_NAME || true
-                docker rm -f nginx-container || true
-
                 echo 'Creating docker network'
                 docker network create $NETWORK_NAME || true
 
