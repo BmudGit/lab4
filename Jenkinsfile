@@ -68,15 +68,16 @@ pipeline {
 
         stage('PUSH IMAGE') {
             steps {
-                sh '''
-                    echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u '$DOCKERHUB_CREDENTIALS_USR' --password-stdin
-
-                    docker tag ${IMAGE_NAME} ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                    docker tag ${IMAGE_NAME} ${DOCKERHUB_REPO}:latest
-
-                    docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                    docker push ${DOCKERHUB_REPO}:latest
-                '''
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+                    sh '''
+                    echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                    docker tag flask-app:latest $DOCKERHUB_REPO:$IMAGE_TAG
+                    docker tag flask-app:latest $DOCKERHUB_REPO:latest
+                    docker push $DOCKERHUB_REPO:$IMAGE_TAG
+                    docker push $DOCKERHUB_REPO:latest
+                    docker logout
+                    '''
+                }
             }
         }
 
