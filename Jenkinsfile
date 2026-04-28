@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = 'flask-app'
         CONTAINER_NAME = 'flask-app'
         NETWORK_NAME = 'app-network'
-        TRIVY_REPORT = 'trivy-report.txt'
+        TRIVY_REPORT = 'trivy_report.txt'
     }
 
     stages{
